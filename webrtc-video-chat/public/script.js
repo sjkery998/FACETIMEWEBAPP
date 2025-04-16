@@ -1,16 +1,13 @@
 const socket = io();
 let localStream;
-let peerConnection;
-let isInitiator = false;
+let peerConnections = {};
 let pairingCode = '';
 const config = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' }
-  ]
+  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
 };
 
 const localVideo = document.getElementById("localVideo");
-const remoteVideo = document.getElementById("remoteVideo");
+const remoteVideos = document.getElementById("remoteVideos");
 const codeInput = document.getElementById("codeInput");
 const joinBtn = document.getElementById("joinBtn");
 const statusSpan = document.getElementById("status");
@@ -18,6 +15,15 @@ const statusSpan = document.getElementById("status");
 function setStatus(msg) {
   statusSpan.textContent = msg;
   console.log("[STATUS]", msg);
+}
+
+function createVideoElement(id) {
+  let video = document.createElement('video');
+  video.id = `remote-${id}`;
+  video.autoplay = true;
+  video.playsInline = true;
+  remoteVideos.appendChild(video);
+  return video;
 }
 
 joinBtn.onclick = async () => {
@@ -32,81 +38,59 @@ joinBtn.onclick = async () => {
   socket.emit("join", pairingCode);
 };
 
-socket.on("joined", (users) => {
-  setStatus(`Bergabung ke room. Total pengguna: ${users.length}`);
-
-  if (users.length > 1) {
-    isInitiator = true;
-    setStatus("Menjadi pengirim offer...");
-    createPeerConnection();
-
-    localStream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, localStream);
-    });
-
-    peerConnection.createOffer()
-      .then(offer => {
-        setStatus("Mengirim offer...");
-        return peerConnection.setLocalDescription(offer);
-      })
-      .then(() => {
-        socket.emit("offer", { pairingCode, sdp: peerConnection.localDescription });
-      });
-  }
-});
-
-socket.on("offer", async ({ sdp }) => {
-  setStatus("Menerima offer...");
-  createPeerConnection();
-
-  await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
-
-  localStream.getTracks().forEach((track) => {
-    peerConnection.addTrack(track, localStream);
+socket.on("joined", async ({ users }) => {
+    setStatus(`Bergabung. Total user lain: ${users.length}`);
+    for (let id of users) {
+      await createConnection(id, true); // initiator
+    }
   });
+  
 
-  const answer = await peerConnection.createAnswer();
-  await peerConnection.setLocalDescription(answer);
-
-  setStatus("Mengirim jawaban (answer)...");
-  socket.emit("answer", { pairingCode, sdp: peerConnection.localDescription });
+socket.on("user-joined", async (id) => {
+  setStatus(`User baru bergabung: ${id}`);
+  await createConnection(id, false);
 });
 
-socket.on("answer", async ({ sdp }) => {
-  setStatus("Menerima jawaban (answer)...");
-  await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+socket.on("offer", async ({ from, sdp }) => {
+  await createConnection(from, false);
+  await peerConnections[from].setRemoteDescription(new RTCSessionDescription(sdp));
+  const answer = await peerConnections[from].createAnswer();
+  await peerConnections[from].setLocalDescription(answer);
+  socket.emit("answer", { to: from, sdp: peerConnections[from].localDescription });
 });
 
-socket.on("ice-candidate", async ({ candidate }) => {
-  if (candidate && peerConnection) {
-    try {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      setStatus("ICE candidate diterapkan");
-    } catch (e) {
-      console.error("Error adding ICE candidate", e);
-    }
+socket.on("answer", async ({ from, sdp }) => {
+  await peerConnections[from].setRemoteDescription(new RTCSessionDescription(sdp));
+});
+
+socket.on("ice-candidate", async ({ from, candidate }) => {
+  if (peerConnections[from] && candidate) {
+    await peerConnections[from].addIceCandidate(new RTCIceCandidate(candidate));
   }
 });
 
-function createPeerConnection() {
-  if (peerConnection) return;
+async function createConnection(id, isInitiator) {
+  if (peerConnections[id]) return;
 
-  peerConnection = new RTCPeerConnection(config);
-  setStatus("PeerConnection dibuat");
+  const pc = new RTCPeerConnection(config);
+  peerConnections[id] = pc;
 
-  peerConnection.onicecandidate = (event) => {
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+  pc.onicecandidate = (event) => {
     if (event.candidate) {
-      socket.emit("ice-candidate", { pairingCode, candidate: event.candidate });
-      setStatus("Mengirim ICE candidate...");
+      socket.emit("ice-candidate", { to: id, candidate: event.candidate });
     }
   };
 
-  peerConnection.ontrack = (event) => {
-    setStatus("Stream remote diterima");
-    remoteVideo.srcObject = event.streams[0];
+  pc.ontrack = (event) => {
+    let video = document.getElementById(`remote-${id}`) || createVideoElement(id);
+    video.srcObject = event.streams[0];
   };
 
-  peerConnection.onconnectionstatechange = () => {
-    setStatus("Connection state: " + peerConnection.connectionState);
-  };
+  if (isInitiator) {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.emit("offer", { to: id, sdp: pc.localDescription });
+  }
 }

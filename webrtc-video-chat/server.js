@@ -18,22 +18,27 @@ io.on('connection', (socket) => {
     rooms[pairingCode].push(socket.id);
     socket.join(pairingCode);
     console.log(`${socket.id} joining room ${pairingCode}`);
-    io.to(socket.id).emit('joined', rooms[pairingCode]);
 
-    // Notify others
-    socket.to(pairingCode).emit('user-joined', socket.id);
+    // Kirim daftar user lain (tidak termasuk dia sendiri)
+    const otherUsers = rooms[pairingCode].filter(id => id !== socket.id);
+    io.to(socket.id).emit('joined', { users: otherUsers });
+
+    // Beritahu user lain bahwa ada yang baru
+    otherUsers.forEach(userId => {
+      io.to(userId).emit('user-joined', socket.id);
+    });
   });
 
-  socket.on('offer', ({ pairingCode, sdp }) => {
-    socket.to(pairingCode).emit('offer', { sdp });
+  socket.on('offer', ({ to, sdp }) => {
+    io.to(to).emit('offer', { from: socket.id, sdp });
   });
 
-  socket.on('answer', ({ pairingCode, sdp }) => {
-    socket.to(pairingCode).emit('answer', { sdp });
+  socket.on('answer', ({ to, sdp }) => {
+    io.to(to).emit('answer', { from: socket.id, sdp });
   });
 
-  socket.on('ice-candidate', ({ pairingCode, candidate }) => {
-    socket.to(pairingCode).emit('ice-candidate', { candidate });
+  socket.on('ice-candidate', ({ to, candidate }) => {
+    io.to(to).emit('ice-candidate', { from: socket.id, candidate });
   });
 
   socket.on('disconnect', () => {
