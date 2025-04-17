@@ -19,14 +19,17 @@ io.on('connection', (socket) => {
     socket.join(pairingCode);
     console.log(`${socket.id} joining room ${pairingCode}`);
 
-    // Kirim daftar user lain (tidak termasuk dia sendiri)
     const otherUsers = rooms[pairingCode].filter(id => id !== socket.id);
     io.to(socket.id).emit('joined', { users: otherUsers });
+    io.to(pairingCode).emit('participants', rooms[pairingCode].length);
 
-    // Beritahu user lain bahwa ada yang baru
     otherUsers.forEach(userId => {
       io.to(userId).emit('user-joined', socket.id);
     });
+  });
+
+  socket.on('chat-message', ({ room, message, from }) => {
+    io.to(room).emit('chat-message', { from, message });
   });
 
   socket.on('offer', ({ to, sdp }) => {
@@ -41,10 +44,31 @@ io.on('connection', (socket) => {
     io.to(to).emit('ice-candidate', { from: socket.id, candidate });
   });
 
+  socket.on('leave', (pairingCode) => {
+    if (rooms[pairingCode]) {
+      rooms[pairingCode] = rooms[pairingCode].filter(id => id !== socket.id);
+      
+      if (rooms[pairingCode].length === 0) {
+        delete rooms[pairingCode];
+      } else {
+        io.to(pairingCode).emit('participants', rooms[pairingCode].length);
+        io.to(pairingCode).emit('user-left', socket.id); // Notify other users
+      }
+
+      socket.leave(pairingCode);
+      console.log(`${socket.id} left room ${pairingCode}`);
+    }
+  });
+
   socket.on('disconnect', () => {
     for (let code in rooms) {
       rooms[code] = rooms[code].filter(id => id !== socket.id);
-      if (rooms[code].length === 0) delete rooms[code];
+      if (rooms[code].length === 0) {
+        delete rooms[code];
+      } else {
+        io.to(code).emit('participants', rooms[code].length);
+        io.to(code).emit('user-left', socket.id);
+      }
     }
     console.log('User disconnected:', socket.id);
   });
