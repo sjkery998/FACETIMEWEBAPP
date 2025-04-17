@@ -24,6 +24,58 @@ const chatMessages = document.getElementById('chatMessages');
 const toggleVideoBtn = document.getElementById('toggleVideo');
 const toggleMicBtn = document.getElementById('toggleMic');
 const notifSound = document.getElementById('notifSound');
+const videoIcon = document.getElementById("videoIcon");
+const micIcon = document.getElementById("micIcon");
+const requestPermissionBtn = document.getElementById('requestPermissionBtn');
+
+requestPermissionBtn.onclick = async () => {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+
+        toggleVideoBtn.disabled = false;
+        toggleMicBtn.disabled = false;
+        requestPermissionBtn.disabled = true; // Optional: disable setelah dapat izin
+        requestPermissionBtn.remove(); // Optional: disable setelah dapat izin
+        toggleVideoBtn.className = isVideoOn ? "bg-green-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80" : "bg-red-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+        toggleMicBtn.className = isMicOn ? "bg-green-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80" : "bg-red-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+
+    } catch (err) {
+        alert("Gagal mendapatkan izin: " + err.message);
+    }
+};
+async function getMedia() {
+    try {
+        // Meminta izin untuk video dan audio
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+
+        // Enable tombol video dan mic setelah mendapatkan izin
+        toggleVideoBtn.disabled = false;
+        toggleMicBtn.disabled = false;
+
+        return true;
+    } catch (err) {
+        alert("Akses kamera atau mikrofon ditolak.");
+        return false;
+    }
+}
+
+toggleVideoBtn.onclick = () => {
+    if (!localStream) return;
+    isVideoOn = !isVideoOn;
+    localStream.getVideoTracks().forEach(track => track.enabled = isVideoOn);
+
+    toggleVideoBtn.className = isVideoOn ? "bg-green-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80" : "bg-red-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+};
+
+toggleMicBtn.onclick = () => {
+    if (!localStream) return;
+    isMicOn = !isMicOn;
+    localStream.getAudioTracks().forEach(track => track.enabled = isMicOn);
+
+    toggleMicBtn.className = isMicOn ? "bg-green-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80" : "bg-red-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+};
 
 // Menangani status UI
 function setStatus(msg) {
@@ -34,14 +86,16 @@ function setStatus(msg) {
 
 // Fungsi untuk membuat elemen video untuk remote user
 function createVideoElement(id, userName = 'User') {
+    const remoteVideos = document.getElementById('remoteVideos');
+
     const videoContainer = document.createElement('div');
-    videoContainer.className = 'relative flex-shrink-0 w-40 h-28 bg-black rounded-xl overflow-hidden';  // Menggunakan flex-shrink-0 untuk mencegah pemampatan
+    videoContainer.className = 'remote-video-wrapper relative overflow-hidden rounded-xl flex-shrink-0 aspect-video';
 
     const video = document.createElement('video');
     video.id = `remote-${id}`;
     video.autoplay = true;
     video.playsInline = true;
-    video.className = 'w-full h-full object-cover';  // Menjaga video agar mengisi kontainer dengan proporsi yang sesuai
+    video.className = 'w-full h-full object-cover';
 
     const nameTag = document.createElement('div');
     nameTag.className = 'absolute top-4 left-4 bg-gray-900 text-white text-sm font-semibold py-1 px-3 rounded-full';
@@ -49,12 +103,33 @@ function createVideoElement(id, userName = 'User') {
 
     videoContainer.appendChild(video);
     videoContainer.appendChild(nameTag);
+    remoteVideos.appendChild(videoContainer);
 
-    document.getElementById('remoteVideos').appendChild(videoContainer);
+    updateRemoteVideoSizes(); // Perbarui ukuran sesuai jumlah user
+
     return video;
 }
+function updateRemoteVideoSizes() {
+    const wrappers = document.querySelectorAll('.remote-video-wrapper');
+    const count = wrappers.length;
 
-  
+    wrappers.forEach(wrapper => {
+        wrapper.className = 'remote-video-wrapper relative overflow-hidden rounded-xl flex-shrink-0 aspect-video';
+
+        // Default: ukuran adaptif untuk HP
+        if (count === 1) {
+            wrapper.classList.add('w-[80vw]', 'max-w-sm');
+        } else if (count === 2) {
+            wrapper.classList.add('w-[65vw]', 'max-w-xs');
+        } else {
+            wrapper.classList.add('w-[55vw]', 'max-w-[220px]');
+        }
+
+        // Desktop: biar ikut flex-col tapi tetap pas
+        wrapper.classList.add('lg:w-full', 'lg:max-w-full');
+    });
+}
+
 
 // Fungsi untuk menampilkan popup nama pengguna
 function showUserNamePopup() {
@@ -77,26 +152,48 @@ function showUserNamePopup() {
 
 // Fungsi untuk mengakses kamera dan audio untuk pratinjau
 async function accessCameraPreview() {
-    setStatus("Mengakses kamera...");
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localVideo.srcObject = localStream;
+    if (!localStream || !localStream.getVideoTracks().length || !localStream.getAudioTracks().length) {
+        setStatus("Mengakses kamera & mikrofon...");
 
-    // Enable tombol video dan mic setelah mendapatkan akses
-    toggleVideoBtn.disabled = false;
-    toggleMicBtn.disabled = false;
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideo.srcObject = localStream;
+
+            // Enable tombol video dan mic setelah akses diberikan
+            toggleVideoBtn.disabled = false;
+            toggleMicBtn.disabled = false;
+        } catch (err) {
+            setStatus("Gagal mengakses kamera/mikrofon.");
+            alert("Akses ke kamera dan mikrofon diperlukan. Silakan aktifkan secara manual dengan tombol kamera/mikrofon.");
+        }
+    } else {
+        setStatus("Kamera & mikrofon sudah aktif.");
+    }
 }
+
 
 // Fungsi untuk bergabung ke room
 joinBtn.onclick = async () => {
+    
     // Tampilkan popup nama sebelum bergabung
     const isNameEntered = await showUserNamePopup();
     if (!isNameEntered) return;  // Jika nama tidak diinput, batalkan bergabung
 
     pairingCode = codeInput.value.trim();
     if (!pairingCode) return alert("Masukkan pairing code terlebih dahulu");
-
+    
+    const mediaGranted = await getMedia();
+    if (!mediaGranted) return;
+    if (!localStream) return;
+    isMicOn = false;
+    localStream.getAudioTracks().forEach(track => track.enabled = isMicOn);
+    if (!localStream) return;
+    isVideoOn = false;
+    localStream.getVideoTracks().forEach(track => track.enabled = isVideoOn);
+    
     setStatus("Menghubungkan ke server...");
     socket.emit("join", pairingCode);
+    requestPermissionBtn.remove()
 };
 
 socket.on("joined", async ({ users }) => {
@@ -105,10 +202,12 @@ socket.on("joined", async ({ users }) => {
     for (let id of users) {
         await createConnection(id, true); // initiator
     }
+    toggleVideoBtn.className = isVideoOn ? "bg-green-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80" : "bg-red-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+    toggleMicBtn.className = isMicOn ? "bg-green-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80" : "bg-red-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
     document.getElementById("roomJoinSection").style.display = "none";
     document.getElementById("chatContainer").style.display = "flex";
     document.getElementById("leaveRoomSection").style.display = "block";
-
+    
     // Menampilkan Room ID di UI
     document.getElementById("roomIdDisplay").textContent = `${pairingCode}`;
 });
@@ -135,6 +234,7 @@ socket.on("user-left", async (payload) => {
     const videoEl = document.getElementById(`remote-${id}`);
     if (videoEl && videoEl.parentElement) {
         videoEl.parentElement.remove(); // remove container
+        updateRemoteVideoSizes();
     }
 
     try { notifSound.play(); } catch (err) { console.warn("Sound error:", err); }
@@ -240,23 +340,12 @@ leaveBtn.onclick = () => {
     }, 500);
 };
 
-// Toggle Video
-toggleVideoBtn.onclick = () => {
-    if (!localStream) return;
-    isVideoOn = !isVideoOn;
-    localStream.getVideoTracks().forEach(track => track.enabled = isVideoOn);
-    toggleVideoBtn.textContent = isVideoOn ? "Stop Video" : "Start Video";
-};
-
-// Toggle Mic
-toggleMicBtn.onclick = () => {
-    if (!localStream) return;
-    isMicOn = !isMicOn;
-    localStream.getAudioTracks().forEach(track => track.enabled = isMicOn);
-    toggleMicBtn.textContent = isMicOn ? "Mute Mic" : "Unmute Mic";
-};
-
 // Akses kamera dan audio ketika halaman dimuat untuk pratinjau
 window.onload = async () => {
     await accessCameraPreview();
+    if (localStream) {
+        requestPermissionBtn.remove();
+        toggleVideoBtn.className = isVideoOn ? "bg-green-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80" : "bg-red-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+        toggleMicBtn.className = isMicOn ? "bg-green-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80" : "bg-red-800 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80"
+    }
 };

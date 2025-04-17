@@ -15,7 +15,7 @@
   <nav class="bg-white shadow-md w-full px-6 py-4">
     <div class="max-w-screen-2xl mx-auto flex items-center">
       <!-- <img src="/logo.png" alt="Logo" class="h-8 w-auto" /> -->
-       <b>Brand Name</b>
+      <b>Brand Name</b>
     </div>
   </nav>
 
@@ -32,31 +32,50 @@
           <p>Room Id: <span id="roomIdDisplay">-</span></p>
           <p>Participants: <span id="participants">0</span></p>
         </div>
-        <div class="flex gap-4 mt-4">
-          <button id="toggleMic" class="px-4 py-2 bg-green-600 text-white rounded-lg">Mute Mic</button>
-          <button id="toggleVideo" class="px-4 py-2 bg-yellow-600 text-white rounded-lg">Stop Video</button>
-        </div>
+        <button id="requestPermissionBtn" class="bg-blue-500 text-white px-4 py-2 rounded">
+          Beri Izin Kamera & Mikrofon
+        </button>
+        
       </div>
 
       <!-- Video Streams -->
       <!-- Wrapper untuk local + remote videos -->
-<div class="flex flex-col lg:flex-row gap-4 w-full">
-  <!-- Local Video -->
-  <div class="flex-grow relative aspect-[4/3] bg-gray-200 rounded-xl overflow-hidden">
-    <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover rounded-xl"></video>
-    <div class="absolute top-4 left-4 bg-gray-900 text-white text-sm font-semibold py-1 px-3 rounded-full">You</div>
-  </div>
+      <div class="flex flex-col lg:flex-row gap-4 w-full">
+        <!-- Local Video -->
+        <div class="flex-grow relative aspect-[4/3] bg-gray-200 rounded-xl overflow-hidden">
+          <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover rounded-xl"></video>
+          <div class="absolute top-4 left-4 bg-gray-900 text-white text-sm font-semibold py-1 px-3 rounded-full">You
+          </div>
+          <!-- Letakkan di atas <video id="localVideo"> -->
+          <div id="videoControlsOverlay" class="absolute bottom-4 right-4 flex gap-3 z-10">
+            <button id="toggleVideo" class="bg-red-900 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80">
+              <svg id="videoIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 8h6a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2z" />
+              </svg>
+            </button>
+            <button id="toggleMic" class="bg-red-900 bg-opacity-60 p-2 rounded-full text-white hover:bg-opacity-80">
+              <svg id="micIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 1v10m0 0a4 4 0 004-4m-4 4a4 4 0 01-4-4m8 0v0a4 4 0 00-8 0v0m8 4v2a4 4 0 01-8 0v-2m4 6v2m0 0h4m-4 0H8" />
+              </svg>
+            </button>
+          </div>
 
-  <!-- Remote Videos -->
-  <!-- Remote Videos -->
-<div id="remoteVideos"
-class="flex flex-row sm:flex-wrap lg:flex-col gap-2 overflow-x-auto sm:overflow-x-auto lg:overflow-y-auto max-h-[500px] w-full lg:w-1/3 p-1 pb-2">
-<!-- Remote video elements akan disisipkan di sini -->
-</div>
+        </div>
 
-</div>
+        <!-- Remote Videos -->
+        <!-- Remote Videos -->
+        <div id="remoteVideos"
+          class="flex flex-row sm:flex-wrap lg:flex-col gap-2 overflow-x-auto sm:overflow-x-auto lg:overflow-y-auto max-h-[500px] w-full lg:w-1/3 p-1 pb-2">
+          <!-- Remote video elements akan disisipkan di sini -->
+        </div>
 
-      
+      </div>
+
+
 
       <!-- Connection Indicator -->
       <div class="flex gap-2 mt-2">
@@ -91,7 +110,12 @@ class="flex flex-row sm:flex-wrap lg:flex-col gap-2 overflow-x-auto sm:overflow-
         <div class="flex items-center gap-3 mt-auto">
           <input type="text" id="chatInput" placeholder="Type here..."
             class="w-full p-3 border border-gray-300 rounded-lg" />
-          <button id="chatSend" class="p-3 bg-blue-600 text-white rounded-lg font-semibold">SEND</button>
+            <button id="chatSend" class="p-3 bg-blue-600 text-white rounded-lg" aria-label="Kirim Pesan">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-7.5-15-7.5v6l10.5 1.5L4.5 13.5v6z" />
+              </svg>
+            </button>
+            
         </div>
       </div>
 
