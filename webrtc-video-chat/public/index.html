@@ -1,64 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Multi-User Video Call</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Menambahkan SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="bg-gray-50 p-6 flex justify-center items-center min-h-screen">
 
-  <!-- Container -->
-  <div class="flex gap-8 flex-wrap max-w-screen-xl w-full">
-    
-    <!-- Left Panel: Video Area -->
-    <div class="bg-white rounded-xl p-6 shadow-xl w-full max-w-lg">
-      <div class="mb-6">
-        <p class="text-lg font-semibold"><strong>Room Info</strong></p>
-        <p>Room Id <span id="roomIdDisplay">-</span></p>
-        <p>Participants <span id="participants">0</span></p>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-white shadow-md w-full px-6 py-4">
+    <div class="max-w-screen-2xl mx-auto flex items-center">
+      <!-- <img src="/logo.png" alt="Logo" class="h-8 w-auto" /> -->
+       <b>Brand Name</b>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-screen-2xl mx-auto px-4 mt-6 mb-8">
+
+    <!-- Video Section (2/3 Columns) -->
+    <div class="col-span-1 lg:col-span-2 bg-white rounded-xl p-4 shadow-md flex flex-col gap-4">
+
+      <!-- Room Info -->
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div>
+          <p class="text-lg font-semibold">Room Info</p>
+          <p>Room Id: <span id="roomIdDisplay">-</span></p>
+          <p>Participants: <span id="participants">0</span></p>
+        </div>
+        <div class="flex gap-4 mt-4">
+          <button id="toggleMic" class="px-4 py-2 bg-green-600 text-white rounded-lg">Mute Mic</button>
+          <button id="toggleVideo" class="px-4 py-2 bg-yellow-600 text-white rounded-lg">Stop Video</button>
+        </div>
       </div>
 
-      <!-- Local Video -->
-      <div class="relative w-full h-96 bg-gray-200 rounded-xl flex justify-center items-center overflow-hidden">
-        <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
-        <div class="absolute top-4 left-4 bg-gray-900 text-white text-sm font-semibold py-1 px-3 rounded-full">You</div>
-      </div>
+      <!-- Video Streams -->
+      <!-- Wrapper untuk local + remote videos -->
+<div class="flex flex-col lg:flex-row gap-4 w-full">
+  <!-- Local Video -->
+  <div class="flex-grow relative aspect-[4/3] bg-gray-200 rounded-xl overflow-hidden">
+    <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover rounded-xl"></video>
+    <div class="absolute top-4 left-4 bg-gray-900 text-white text-sm font-semibold py-1 px-3 rounded-full">You</div>
+  </div>
 
-      <!-- Remote Preview (Thumbnails) -->
-      <div class="mt-6 flex gap-4 justify-center flex-wrap" id="remoteVideos">
-        <!-- Remote video elements will be appended here -->
-      </div>
+  <!-- Remote Videos -->
+  <!-- Remote Videos -->
+<div id="remoteVideos"
+class="flex flex-row sm:flex-wrap lg:flex-col gap-2 overflow-x-auto sm:overflow-x-auto lg:overflow-y-auto max-h-[500px] w-full lg:w-1/3 p-1 pb-2">
+<!-- Remote video elements akan disisipkan di sini -->
+</div>
 
-      <!-- Controls -->
-      <div class="flex gap-4 mt-6">
-        <button id="toggleMic" class="px-4 py-2 bg-green-600 text-white rounded-lg">Mute Mic</button>
-        <button id="toggleVideo" class="px-4 py-2 bg-yellow-600 text-white rounded-lg">Stop Video</button>
-      </div>
+</div>
 
-      <!-- Indicator -->
-      <div class="flex gap-2 mt-4">
+      
+
+      <!-- Connection Indicator -->
+      <div class="flex gap-2 mt-2">
         <div class="w-3 h-3 rounded-full bg-blue-400"></div>
         <div class="w-3 h-3 rounded-full bg-gray-400"></div>
         <div class="w-3 h-3 rounded-full bg-gray-400"></div>
       </div>
     </div>
 
-    <!-- Right Panel: Controls and Chat -->
-    <div class="w-full max-w-sm flex flex-col gap-6">
-      
-      <!-- Room Join Section -->
-      <div class="bg-gray-100 p-6 rounded-xl shadow-lg" id="roomJoinSection">
+    <!-- Right Panel (1/3 Column) -->
+    <div class="col-span-1 flex flex-col gap-4">
+
+      <!-- Join Room -->
+      <div class="bg-gray-100 p-4 rounded-xl shadow-md" id="roomJoinSection">
         <label for="codeInput" class="text-lg font-semibold">Room Code</label>
-        <input type="text" id="codeInput" placeholder="Enter Room Code" class="w-full p-4 mt-2 border border-gray-300 rounded-lg text-gray-700"/>
-        <button id="joinBtn" class="w-full mt-4 p-4 bg-blue-600 text-white font-semibold rounded-lg">Join</button>
+        <input type="text" id="codeInput" placeholder="Enter Room Code"
+          class="w-full p-3 mt-2 border border-gray-300 rounded-lg" />
+        <button id="joinBtn" class="w-full mt-4 p-3 bg-blue-600 text-white font-semibold rounded-lg">Join</button>
         <p id="status" class="mt-2 text-sm text-gray-600"></p>
       </div>
 
-      <!-- Chat Section -->
-      <div id="chatContainer" class="bg-white rounded-xl p-6 shadow-lg flex flex-col gap-4 min-h-[400px]" style="display: none;">
+      <!-- Chat -->
+      <div id="chatContainer" class="bg-white rounded-xl p-4 shadow-md flex flex-col gap-4 min-h-[300px] h-full"
+        style="display: none;">
         <div id="chatMessages" class="flex flex-col gap-3 overflow-y-auto max-h-64 pr-2">
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 bg-gray-300 rounded-full"></div>
@@ -67,14 +89,16 @@
         </div>
 
         <div class="flex items-center gap-3 mt-auto">
-          <input type="text" id="chatInput" placeholder="Type here..." class="w-full p-3 border border-gray-300 rounded-lg text-gray-700"/>
+          <input type="text" id="chatInput" placeholder="Type here..."
+            class="w-full p-3 border border-gray-300 rounded-lg" />
           <button id="chatSend" class="p-3 bg-blue-600 text-white rounded-lg font-semibold">SEND</button>
         </div>
       </div>
 
-      <!-- Leave Room Section -->
+      <!-- Leave Room -->
       <div id="leaveRoomSection" style="display: none;">
-        <button id="leaveBtn" class="w-full mt-4 p-4 bg-red-600 text-white font-semibold rounded-lg">Leave Room</button>
+        <button id="leaveBtn" class="w-full mt-4 p-3 bg-red-600 text-white font-semibold rounded-lg">Leave
+          Room</button>
       </div>
     </div>
   </div>
@@ -84,4 +108,5 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>
+
 </html>

@@ -31,27 +31,29 @@ function setStatus(msg) {
     console.log("[STATUS]", msg);
 }
 
+
 // Fungsi untuk membuat elemen video untuk remote user
 function createVideoElement(id, userName = 'User') {
     const videoContainer = document.createElement('div');
-    videoContainer.className = 'relative w-40 h-28 bg-black rounded-xl overflow-hidden';
-  
+    videoContainer.className = 'relative flex-shrink-0 w-40 h-28 bg-black rounded-xl overflow-hidden';  // Menggunakan flex-shrink-0 untuk mencegah pemampatan
+
     const video = document.createElement('video');
     video.id = `remote-${id}`;
     video.autoplay = true;
     video.playsInline = true;
-    video.className = 'w-full h-full object-cover';
-  
+    video.className = 'w-full h-full object-cover';  // Menjaga video agar mengisi kontainer dengan proporsi yang sesuai
+
     const nameTag = document.createElement('div');
     nameTag.className = 'absolute top-4 left-4 bg-gray-900 text-white text-sm font-semibold py-1 px-3 rounded-full';
     nameTag.textContent = userName;
-  
+
     videoContainer.appendChild(video);
     videoContainer.appendChild(nameTag);
-  
+
     document.getElementById('remoteVideos').appendChild(videoContainer);
     return video;
-  }
+}
+
   
 
 // Fungsi untuk menampilkan popup nama pengguna
